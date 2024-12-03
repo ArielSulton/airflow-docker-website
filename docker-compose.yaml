@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-airflow-common:
   &airflow-common
   # In order to add custom dependencies or upgrade provider packages you can use your extended image.
@@ -10,13 +8,16 @@ x-airflow-common:
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://admin:rahasia@localhost:5432/financial_db
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://admin:rahasia@localhost:5432/financial_db
-    AIRFLOW__CELERY__BROKER_URL: redis://:@localhost:6379/0
-    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://admin:rahasia@postgres:5432/financial_db
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://admin:rahasia@postgres:5432/financial_db
+    AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+    AIRFLOW__CORE__FERNET_KEY: 'SECRET_KEY'
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'SECRET_KEY'
+    AIRFLOW__WEBSERVER__SECRET_KEY_CMD: 'SECRET_KEY'
+    AIRFLOW__WEBSERVER__SECRET_KEY_SECRET: 'SECRET_KEY'
     # yamllint disable rule:line-length
     # Use simple http server on scheduler for health checks
     # See https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/logging-monitoring/check-health.html#scheduler-health-check-server
@@ -28,11 +29,16 @@ x-airflow-common:
     # The following line can be used to set a custom config file, stored in the local config folder
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+    POSTGRES_DB: financial_db
+    POSTGRES_USER: admin
+    POSTGRES_PASSWORD: rahasia
   volumes:
-    - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
-    - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
-    - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - ${AIRFLOW_PROJ_DIR:-.}/airflow/dags:/opt/airflow/dags
+    - ${AIRFLOW_PROJ_DIR:-.}/airflow/logs:/opt/airflow/logs
+    - ${AIRFLOW_PROJ_DIR:-.}/airflow/config:/opt/airflow/config
+    - ${AIRFLOW_PROJ_DIR:-.}/airflow/plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -45,7 +51,11 @@ services:
   postgres:
     container_name: postgres
     image: postgres:13
-    network_mode: host
+    hostname: postgres
+    networks:
+      - finance
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: rahasia
@@ -65,9 +75,11 @@ services:
     # Redis is limited to 7.2-bookworm due to licencing change
     # https://redis.io/blog/redis-adopts-dual-source-available-licensing/
     image: redis:7.2-bookworm
-    network_mode: host
-    expose:
-      - 6379
+    hostname: redis
+    networks:
+      - finance
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -79,7 +91,8 @@ services:
   airflow-webserver:
     <<: *airflow-common
     command: webserver
-    network_mode: host
+    networks:
+      - finance
     ports:
       - "8080:8080"
     healthcheck:
@@ -97,7 +110,8 @@ services:
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
-    network_mode: host
+    networks:
+      - finance
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
       interval: 30s
@@ -113,7 +127,8 @@ services:
   airflow-worker:
     <<: *airflow-common
     command: celery worker
-    network_mode: host
+    networks:
+      - finance
     healthcheck:
       # yamllint disable rule:line-length
       test:
@@ -137,7 +152,8 @@ services:
   airflow-triggerer:
     <<: *airflow-common
     command: triggerer
-    network_mode: host
+    networks:
+      - finance
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
       interval: 30s
@@ -203,7 +219,8 @@ services:
         chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
         exec /entrypoint airflow version
     # yamllint enable rule:line-length
-    network_mode: host
+    networks:
+      - finance
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
@@ -213,12 +230,14 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
     volumes:
-      - ${AIRFLOW_PROJ_DIR:-.}:/sources
+      - ${AIRFLOW_PROJ_DIR:-.}/airflow:/sources
 
   airflow-cli:
     <<: *airflow-common
     profiles:
       - debug
+    networks:
+      - finance
     environment:
       <<: *airflow-common-env
       CONNECTION_CHECK_MAX_COUNT: "0"
@@ -234,9 +253,10 @@ services:
   flower:
     <<: *airflow-common
     command: celery flower
-    network_mode: host
     profiles:
       - flower
+    networks:
+      - finance
     ports:
       - "5555:5555"
     healthcheck:
@@ -253,16 +273,15 @@ services:
 
   flask:
     container_name: flask
-    network_mode: host
     build: 
       context: ./flask
     environment:
       - FLASK_ENV=development
-      - DATABASE_URL=postgresql://admin:rahasia@localhost:5432/financial_db
+      - DATABASE_URL=postgresql://admin:rahasia@postgres:5432/financial_db
       - FLASK_APP=app.py
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
-      - POSTGRES_HOST=localhost
+      - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=financial_db
       - POSTGRES_USER=admin
@@ -270,25 +289,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - finance
     ports:
-      - "5000:5000"
-
-  pgadmin:
-    container_name: pgadmin
-    network_mode: host
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: rahasia
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      - "8081:8080"
+  
+  adminer :
+    container_name: adminer
+    image : adminer
+    restart : always
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
-    ports:
-      - "8888:80"
+    networks :
+      - finance
+    ports :
+      - "8888:8080"
 
 volumes:
   postgres-data:
   pgadmin-data:
+
+networks:
+  finance:
+    driver: bridge

@@ -1,6 +1,5 @@
 CREATE TABLE transactions (
-    id SERIAL PRIMARY KEY,
-    transaction_id INTEGER UNIQUE,
+    transaction_id INTEGER UNIQUE PRIMARY KEY,
     amount DECIMAL(10, 2),
     category VARCHAR(100),
     merchant VARCHAR(200),
