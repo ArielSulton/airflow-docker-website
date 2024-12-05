@@ -28,7 +28,9 @@ with DAG(
     'finance_data_generator',
     default_args=default_args,
     description='Generate and store synthetic financial data',
-    schedule_interval='@daily',
+    # schedule_interval='@daily',
+    schedule_interval='*/1 * * * *',
+    # The five asterisks represent minute, hour, day of month, month, and day of week respectively
     catchup=False
 ) as dag:
     
