@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analytics Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-gray-800">Financial Analytics</h1>
+                </div>
+                <div class="flex items-center">
+                    <select id="dateRange" class="form-select rounded-md shadow-sm px-4 py-2">
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
+                        <option value="90d">Last 90 Days</option>
+                        <option value="1y">Last Year</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="stats-card bg-white rounded-lg shadow-md p-6">
+                <div class="stats-value text-2xl font-bold text-gray-800">0</div>
+                <div class="stats-label text-gray-600">Total Transactions</div>
+            </div>
+            <div class="stats-card bg-white rounded-lg shadow-md p-6">
+                <div class="stats-value text-2xl font-bold text-gray-800">$0.00</div>
+                <div class="stats-label text-gray-600">Total Amount</div>
+            </div>
+            <div class="stats-card bg-white rounded-lg shadow-md p-6">
+                <div class="stats-value text-2xl font-bold text-gray-800">$0.00</div>
+                <div class="stats-label text-gray-600">Average Transaction</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">Category Distribution</h2>
+                <div id="category-chart" class="h-[400px]"></div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">Payment Methods</h2>
+                <div id="payment-chart" class="h-[400px]"></div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold mb-4">Daily Transactions</h2>
+                <div id="daily-chart" class="h-[400px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
