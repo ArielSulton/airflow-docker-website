@@ -1,2 +1,4 @@
 # Airflow-Docker
-airflow by nuril
+airflow by igo
+dashboard by nuril
+docker by ariel
