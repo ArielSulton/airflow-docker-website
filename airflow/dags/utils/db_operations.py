@@ -22,10 +22,33 @@ def get_database_engine():
         print(f"Database connection error: {e}")
         raise
 
-def store_transactions_to_db(df, engine):
-    """Store transactions DataFrame to PostgreSQL database with error handling"""
+def get_last_transaction_id(engine):
+    """Get the last transaction_id from the database"""
     try:
-        df.to_sql('transactions', engine, if_exists='replace', index=False)
+        with engine.connect() as connection:
+            result = connection.execute("SELECT MAX(transaction_id) FROM transactions")
+            last_id = result.scalar()  # Fetch the maximum transaction_id
+            return last_id if last_id else 0  # Return 0 if no transactions exist
+    except SQLAlchemyError as e:
+        print(f"Error fetching last transaction ID: {e}")
+        raise
+
+def update_transaction_ids(df, start_id):
+    """Update transaction_id in the DataFrame starting from start_id"""
+    df['transaction_id'] = range(start_id + 1, start_id + 1 + len(df))
+    return df
+
+def store_transactions_to_db(df, engine):
+    """Store transactions DataFrame to PostgreSQL database with ID management"""
+    try:
+        # Get last transaction_id
+        last_id = get_last_transaction_id(engine)
+        
+        # Update transaction_id in DataFrame
+        df = update_transaction_ids(df, last_id)
+        
+        # Store updated DataFrame to database
+        df.to_sql('transactions', engine, if_exists='append', index=False)
         print("Transactions successfully stored in database")
     except Exception as e:
         print(f"Error storing transactions: {e}")

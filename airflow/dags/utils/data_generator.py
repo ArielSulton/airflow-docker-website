@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-def generate_transaction_ids(size):
-    return range(1, size + 1)
+def generate_transaction_ids(size, start_id=1):
+    return range(start_id, start_id + size)
 
 def generate_amounts(size):
     np.random.seed(42)
@@ -37,10 +37,10 @@ def generate_timestamps(size):
         periods=size
     )
 
-def generate_financial_transactions(size=100):
-    """Generate synthetic financial transaction data"""
+def generate_financial_transactions(size=100, start_id=1):
+    """Generate synthetic financial transaction data with incremental transaction IDs"""
     transactions = {
-        'transaction_id': generate_transaction_ids(size),
+        'transaction_id': generate_transaction_ids(size, start_id),
         'amount': generate_amounts(size),
         'category': generate_categories(size),
         'merchant': generate_merchants(size),
