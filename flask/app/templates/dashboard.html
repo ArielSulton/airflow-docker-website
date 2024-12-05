@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Analytics Dashboard</title>
+    <title>Financial Analytics Dashboard with Airflow and Flask</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -51,7 +51,7 @@
                 <div id="category-chart" class="h-[400px]"></div>
             </div>
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-lg font-semibold mb-4">Payment Methods</h2>
+                <h2 class="text-lg font-semibold mb-4">Payment Method</h2>
                 <div id="payment-chart" class="h-[400px]"></div>
             </div>
             <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
